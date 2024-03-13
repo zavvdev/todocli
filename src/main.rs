@@ -1,16 +1,33 @@
 use std::io::{self, Write};
 
+// ==================================
+
+const TASKS_LIST_MAX_CAPACITY: usize = 200;
+const EXIT: &str = "exit";
+const HELP: &str = "help";
+
+enum ProcessResult {
+    Exit,
+    UnknownCommand,
+    Ok,
+}
+
+enum ErrorCause {
+    CapacityExceeded,
+    NotFound,
+}
+
+// ==================================
+
 struct Task {
-    id: u64,
     text: String,
     is_done: bool,
 }
 
 impl Task {
-    fn new(id: u64, text: String) -> Self {
+    fn new(text: &str) -> Self {
         Self {
-            id,
-            text,
+            text: text.to_string(),
             is_done: false,
         }
     }
@@ -22,7 +39,13 @@ impl Task {
     fn undone(&mut self) {
         self.is_done = false;
     }
+
+    fn alter(&mut self, next_text: &str) {
+        self.text = next_text.to_string();
+    }
 }
+
+// ==================================
 
 struct List {
     tasks: Vec<Task>,
@@ -30,62 +53,65 @@ struct List {
 
 impl List {
     fn new() -> Self {
-        Self { tasks: Vec::new() }
-    }
-
-    fn add(&mut self, task: String) {
-        match self.tasks.last() {
-            Some(last) => {
-                let next_id = last.id + 1; // TODO: Check for integer overflow
-                self.tasks.push(Task::new(next_id, task));
-            }
-            None => {
-                self.tasks.push(Task::new(1, task));
-            }
+        Self {
+            tasks: Vec::with_capacity(TASKS_LIST_MAX_CAPACITY),
         }
     }
 
-    fn remove(&mut self, id: u64) {
-        self.tasks.retain(|t| t.id != id);
+    fn add(&mut self, text: &str) -> Result<(), ErrorCause> {
+        if self.tasks.len() < self.tasks.capacity() {
+            self.tasks.push(Task::new(text));
+            return Ok(());
+        }
+
+        Err(ErrorCause::CapacityExceeded)
+    }
+
+    fn remove(&mut self, index: usize) -> Result<(), ErrorCause> {
+        if index < self.tasks.len() {
+            self.tasks.remove(index);
+            return Ok(());
+        }
+
+        Err(ErrorCause::NotFound)
+    }
+
+    fn alter(&mut self, index: usize, next_text: &str) -> Result<(), ErrorCause> {
+        match self.tasks.get(index) {
+            Some(task) => {
+                task.alter(next_text);
+                Ok(())
+            }
+            None => Err(ErrorCause::NotFound),
+        }
     }
 
     fn clear(&mut self) {
         self.tasks.clear();
     }
 
-    fn mark_task_done(&mut self, id: u64) {
-        for task in &mut self.tasks {
-            if task.id == id && !task.is_done {
+    fn mark_done(&mut self, index: usize) -> Result<(), ErrorCause> {
+        match self.tasks.get(index) {
+            Some(task) => {
                 task.done();
-                break;
+                Ok(())
             }
+            None => Err(ErrorCause::NotFound),
         }
     }
 
-    fn mark_task_undone(&mut self, id: u64) {
-        for task in &mut self.tasks {
-            if task.id == id && task.is_done {
+    fn mark_undone(&mut self, index: usize) -> Result<(), ErrorCause> {
+        match self.tasks.get(index) {
+            Some(task) => {
                 task.undone();
-                break;
+                Ok(())
             }
-        }
-    }
-
-    fn view(&mut self) {
-        for task in &mut self.tasks {
-            println!("{} | {}", task.id, task.text);
+            None => Err(ErrorCause::NotFound),
         }
     }
 }
 
-enum ProcessResult {
-    Exit,
-    UnknownCommand,
-    Ok,
-}
-
-const EXIT: &str = "exit";
-const HELP: &str = "help";
+// ==================================
 
 fn trim_whitespaces(s: &str) -> String {
     let words: Vec<_> = s.split_whitespace().collect();
@@ -122,12 +148,7 @@ fn process_input(input: &str, list: &mut List) -> ProcessResult {
     }
 
     if input == "add" {
-        list.add("hello".to_string());
-        return ProcessResult::Ok;
-    }
-
-    if input == "list" {
-        list.view();
+        list.add("hello");
         return ProcessResult::Ok;
     }
 
