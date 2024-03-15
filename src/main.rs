@@ -1,10 +1,11 @@
 mod config;
-mod handlers;
 mod models;
 mod parsers;
+mod controllers;
+mod services;
 
-use crate::config::ProcessResult;
-use crate::handlers::input;
+use crate::controllers::input;
+use crate::input::ProcessResult;
 use crate::models::list::List;
 use crate::models::state::State;
 
@@ -16,11 +17,8 @@ fn main() {
         print!("> ");
 
         match input::process(&input::accept(), &mut list, &mut state) {
-            ProcessResult::Exit => break,
-            ProcessResult::UnknownCommand => {
-                println!("Unknown command");
-            }
             ProcessResult::Ok => continue,
+            ProcessResult::Terminate => break,
         }
     }
 }

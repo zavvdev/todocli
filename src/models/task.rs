@@ -1,12 +1,12 @@
-pub struct Task {
-    text: String,
-    is_done: bool,
+pub struct Task<'a> {
+    pub text: &'a str,
+    pub is_done: bool,
 }
 
-impl Task {
-    pub fn new(text: &str) -> Self {
+impl<'a> Task<'a> {
+    pub fn new(text: &'a str) -> Self {
         Self {
-            text: text.to_string(),
+            text,
             is_done: false,
         }
     }
@@ -19,7 +19,7 @@ impl Task {
         self.is_done = false;
     }
 
-    pub fn alter(&mut self, next_text: &str) {
-        self.text = next_text.to_string();
+    pub fn alter(&mut self, next_text: &'a str) {
+        self.text = next_text;
     }
 }

@@ -1,16 +1,3 @@
-// TODO: Move to related entities
-
-pub enum ProcessResult {
-    Exit,
-    UnknownCommand,
-    Ok,
-}
-
-pub enum ErrorCause {
-    CapacityExceeded,
-    NotFound,
-}
-
 pub enum Command {
     Exit,
     Help,
@@ -23,10 +10,6 @@ pub enum Command {
     Clear,
     Save,
     Load,
-}
-
-pub enum Status {
-    NeedMoreData,
 }
 
 pub const TASKS_LIST_MAX_CAPACITY: usize = 200;

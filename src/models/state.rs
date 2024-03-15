@@ -1,4 +1,8 @@
-use crate::config::{Command, Status};
+use crate::config::Command;
+
+pub enum Status {
+    NeedMoreData,
+}
 
 pub struct State {
     command: Option<Command>,

@@ -1,18 +1,23 @@
-use crate::models::task::Task;
 use crate::config::*;
+use crate::models::task::Task;
 
-pub struct List {
-    tasks: Vec<Task>,
+pub enum ErrorCause {
+    CapacityExceeded,
+    NotFound,
 }
 
-impl List {
+pub struct List<'a> {
+    tasks: Vec<Task<'a>>,
+}
+
+impl<'a> List<'a> {
     pub fn new() -> Self {
         Self {
             tasks: Vec::with_capacity(TASKS_LIST_MAX_CAPACITY),
         }
     }
 
-    pub fn add(&mut self, text: &str) -> Result<(), ErrorCause> {
+    pub fn add(&mut self, text: &'a str) -> Result<(), ErrorCause> {
         if self.tasks.len() < self.tasks.capacity() {
             self.tasks.push(Task::new(text));
             return Ok(());
@@ -30,7 +35,7 @@ impl List {
         Err(ErrorCause::NotFound)
     }
 
-    pub fn alter(&mut self, index: usize, next_text: &str) -> Result<(), ErrorCause> {
+    pub fn alter(&mut self, index: usize, next_text: &'a str) -> Result<(), ErrorCause> {
         match self.tasks.get_mut(index) {
             Some(task) => {
                 task.alter(next_text);
@@ -62,5 +67,9 @@ impl List {
             }
             None => Err(ErrorCause::NotFound),
         }
+    }
+
+    pub fn dump(&mut self) -> &Vec<Task<'a>> {
+        &self.tasks
     }
 }

@@ -1,2 +1,2 @@
-mod command_parser;
-mod file_parser;
+pub mod command_parser;
+pub mod file_parser;
