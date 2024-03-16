@@ -1,15 +1,13 @@
-use crate::config::Command;
-
 pub enum Status {
     NeedMoreData,
 }
 
-pub struct State {
-    command: Option<Command>,
+pub struct State<'a> {
+    command: Option<&'a str>,
     status: Option<Status>,
 }
 
-impl State {
+impl<'a> State<'a> {
     pub fn new() -> Self {
         Self {
             command: None,
@@ -17,7 +15,7 @@ impl State {
         }
     }
 
-    pub fn set(&mut self, command: Command, status: Status) {
+    pub fn set(&mut self, command: &'a str, status: Status) {
         self.command = Some(command);
         self.status = Some(status);
     }

@@ -1,13 +1,11 @@
+use crate::config::{
+    C_ADD, C_CLEAR, C_DONE, C_EDIT, C_EXIT, C_HELP, C_LIST, C_LOAD, C_REMOVE, C_SAVE, C_UNDONE,
+};
 use crate::models::state::State;
 use crate::parsers::command_parser;
 use crate::services::action;
-use crate::{config::Command, models::list::List};
+use crate::{config::ProcessResult, models::list::List};
 use std::io::{self, Write};
-
-pub enum ProcessResult {
-    Ok,
-    Terminate,
-}
 
 pub fn accept() -> String {
     let mut input = String::new();
@@ -25,61 +23,29 @@ pub fn process(input: &str, list: &mut List, state: &mut State) -> ProcessResult
 
     // TODO: react to state's status first
 
-    match parse_result.error {
-        Some(command_parser::ParseError::InvalidCommand) => {
-            action::unknown_command();
-            ProcessResult::Ok
+    match parse_result.command {
+        C_EXIT => action::exit(),
+        C_HELP => action::help(),
+        C_LIST => action::list(list),
+        C_ADD => action::add(state),
+        C_EDIT => {
+            // TODO: Validate arguments
+            
+            action::edit(
+                parse_result
+                    .arguments
+                    .first()
+                    .unwrap()
+                    .parse::<usize>()
+                    .unwrap(),
+            )
         }
-        Some(command_parser::ParseError::InvalidArguments) => {
-            action::invalid_arguments();
-            ProcessResult::Ok
-        }
-        None => match parse_result.command {
-            Some(Command::Exit) => {
-                action::exit();
-                ProcessResult::Terminate
-            }
-            Some(Command::List) => {
-                action::list(list);
-                ProcessResult::Ok
-            }
-            Some(Command::Add) => {
-                action::add(state);
-                ProcessResult::Ok
-            }
-            Some(Command::Help) => {
-                action::help();
-                ProcessResult::Ok
-            }
-            Some(Command::Edit) => {
-                action::edit();
-                ProcessResult::Ok
-            }
-            Some(Command::Done) => {
-                action::done();
-                ProcessResult::Ok
-            }
-            Some(Command::Undone) => {
-                action::undone();
-                ProcessResult::Ok
-            }
-            Some(Command::Save) => {
-                action::save();
-                ProcessResult::Ok
-            }
-            Some(Command::Load) => {
-                action::load();
-                ProcessResult::Ok
-            }
-            Some(Command::Clear) => {
-                action::clear();
-                ProcessResult::Ok
-            }
-            Some(Command::Remove) => {
-                action::remove();
-                ProcessResult::Ok
-            }
-            None => ProcessResult::Ok,
-        },
+        C_REMOVE => action::remove(),
+        C_DONE => action::done(),
+        C_UNDONE => action::undone(),
+        C_SAVE => action::save(),
+        C_LOAD => action::load(),
+        C_CLEAR => action::clear(),
+        _ => action::unknown_command(),
     }
 }

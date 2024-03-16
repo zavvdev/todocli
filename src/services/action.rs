@@ -1,46 +1,81 @@
 use crate::{
-    config::Command,
+    config::{ProcessResult, C_ADD},
     models::{
         list::List,
         state::{State, Status},
     },
 };
 
-pub fn unknown_command() {
+pub fn unknown_command() -> ProcessResult {
     println!("Unknown command");
+    ProcessResult::Ok
 }
 
-pub fn invalid_arguments() {
-    println!("Invalid arguments");
-}
-
-pub fn exit() {
+pub fn exit() -> ProcessResult {
     println!("Bye!");
+    ProcessResult::Terminate
 }
 
-pub fn list(l: &mut List) {
-    // TODO: Show done/undone status
+pub fn list(l: &mut List) -> ProcessResult {
     for (index, task) in l.dump().iter().enumerate() {
-        println!("{}) {}", index + 1, task.text);
+        let status = match task.is_done {
+            true => "[+]",
+            false => "[ ]",
+        };
+
+        println!("{}) {} {}", index + 1, status, task.text);
     }
+
+    ProcessResult::Ok
 }
 
-pub fn add(state: &mut State) {
-    state.set(Command::Add, Status::NeedMoreData);
+pub fn add(state: &mut State) -> ProcessResult {
+    state.set(C_ADD, Status::NeedMoreData);
+    ProcessResult::Ok
 }
 
-pub fn help() {}
+pub fn help() -> ProcessResult {
+    println!("exit     - Exit program");
+    println!("help     - View available commands");
+    println!("list     - View all tasks");
+    println!("clear    - Clear tasks");
+    println!("add      - Add new task");
+    println!("edit 2   - Edit task by index where 2 is index");
+    println!("remove 2 - Delete task by index where 2 is index");
+    println!("done 2   - Mark task as DONE where 2 is index");
+    println!("undone 2 - Mark task as UNDONE where 2 is index");
+    println!("save     - Save list to external file");
+    println!("load     - Load list from external file");
+    
+    ProcessResult::Ok
+}
 
-pub fn edit() {}
+pub fn edit(task_index: usize) -> ProcessResult {
+    println!("{}", task_index);
 
-pub fn done() {}
+    ProcessResult::Ok
+}
 
-pub fn undone() {}
+pub fn done() -> ProcessResult {
+    ProcessResult::Ok
+}
 
-pub fn save() {}
+pub fn undone() -> ProcessResult {
+    ProcessResult::Ok
+}
 
-pub fn load() {}
+pub fn save() -> ProcessResult {
+    ProcessResult::Ok
+}
 
-pub fn clear() {}
+pub fn load() -> ProcessResult {
+    ProcessResult::Ok
+}
 
-pub fn remove() {}
+pub fn clear() -> ProcessResult {
+    ProcessResult::Ok
+}
+
+pub fn remove() -> ProcessResult {
+    ProcessResult::Ok
+}

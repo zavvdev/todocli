@@ -1,15 +1,7 @@
-pub enum Command {
-    Exit,
-    Help,
-    List,
-    Add,
-    Remove,
-    Edit,
-    Done,
-    Undone,
-    Clear,
-    Save,
-    Load,
+pub enum ProcessResult {
+    Ok,
+    Terminate,
+    Error,
 }
 
 pub const TASKS_LIST_MAX_CAPACITY: usize = 200;
