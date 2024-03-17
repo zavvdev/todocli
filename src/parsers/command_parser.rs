@@ -3,6 +3,11 @@ pub struct ParseResult<'a> {
     pub arguments: Vec<&'a str>,
 }
 
+pub fn prepare_input(target: String) -> String {
+    let entries: Vec<&str> = target.split_whitespace().collect();
+    entries.join(" ")
+}
+
 pub fn parse<'a>(target: &'a str) -> ParseResult<'a> {
     let entries: Vec<&str> = target.split_whitespace().collect();
 

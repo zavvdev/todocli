@@ -1,7 +1,13 @@
+pub enum ProcessError {
+    ListCapacityExceeded,
+    ListItemNotFound,
+    TaskIndexMissing,
+}
+
 pub enum ProcessResult {
     Ok,
     Terminate,
-    Error,
+    Error(ProcessError),
 }
 
 pub const TASKS_LIST_MAX_CAPACITY: usize = 200;

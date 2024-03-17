@@ -1,10 +1,12 @@
 pub enum Status {
-    NeedMoreData,
+    NeedPlainText,
+    NeedConfirmation,
 }
 
 pub struct State<'a> {
-    command: Option<&'a str>,
-    status: Option<Status>,
+    pub command: Option<&'a str>,
+    pub status: Option<Status>,
+    pub task_index: Option<usize>,
 }
 
 impl<'a> State<'a> {
@@ -12,16 +14,19 @@ impl<'a> State<'a> {
         Self {
             command: None,
             status: None,
+            task_index: None,
         }
     }
 
-    pub fn set(&mut self, command: &'a str, status: Status) {
+    pub fn set(&mut self, command: &'a str, status: Status, task_index: Option<usize>) {
         self.command = Some(command);
         self.status = Some(status);
+        self.task_index = task_index;
     }
 
     pub fn reset(&mut self) {
         self.command = None;
         self.status = None;
+        self.task_index = None;
     }
 }

@@ -3,9 +3,10 @@ mod controllers;
 mod models;
 mod parsers;
 mod services;
+mod validators;
 
+use crate::config::{ProcessError, ProcessResult};
 use crate::controllers::input;
-use crate::config::ProcessResult;
 use crate::models::list::List;
 use crate::models::state::State;
 
@@ -16,10 +17,17 @@ fn main() {
     loop {
         print!("> ");
 
-        match input::process(&input::accept(), &mut list, &mut state) {
+        match input::process(input::accept(), &mut list, &mut state) {
             ProcessResult::Ok => continue,
             ProcessResult::Terminate => break,
-            ProcessResult::Error => println!("Something went wrong..."),
+            ProcessResult::Error(cause) => {
+                state.reset();
+                match cause {
+                    ProcessError::ListCapacityExceeded => println!("List capacity exceeded"),
+                    ProcessError::ListItemNotFound => println!("List item not found"),
+                    ProcessError::TaskIndexMissing => println!("Task index missing"),
+                }
+            }
         }
     }
 }

@@ -1,47 +1,46 @@
 use crate::config::*;
 use crate::models::task::Task;
 
-pub enum ErrorCause {
-    CapacityExceeded,
-    NotFound,
+pub struct List {
+    tasks: Vec<Task>,
 }
 
-pub struct List<'a> {
-    tasks: Vec<Task<'a>>,
-}
-
-impl<'a> List<'a> {
+impl List {
     pub fn new() -> Self {
         Self {
             tasks: Vec::with_capacity(TASKS_LIST_MAX_CAPACITY),
         }
     }
 
-    pub fn add(&mut self, text: &'a str) -> Result<(), ErrorCause> {
+    pub fn get(&mut self, index: usize) -> Option<&Task> {
+        self.tasks.get(index)
+    }
+
+    pub fn add(&mut self, text: String) -> Result<(), ProcessError> {
         if self.tasks.len() < self.tasks.capacity() {
             self.tasks.push(Task::new(text));
             return Ok(());
         }
 
-        Err(ErrorCause::CapacityExceeded)
+        Err(ProcessError::ListCapacityExceeded)
     }
 
-    pub fn remove(&mut self, index: usize) -> Result<(), ErrorCause> {
+    pub fn remove(&mut self, index: usize) -> Result<(), ProcessError> {
         if index < self.tasks.len() {
             self.tasks.remove(index);
             return Ok(());
         }
 
-        Err(ErrorCause::NotFound)
+        Err(ProcessError::ListItemNotFound)
     }
 
-    pub fn alter(&mut self, index: usize, next_text: &'a str) -> Result<(), ErrorCause> {
+    pub fn alter(&mut self, index: usize, next_text: String) -> Result<(), ProcessError> {
         match self.tasks.get_mut(index) {
             Some(task) => {
                 task.alter(next_text);
                 Ok(())
             }
-            None => Err(ErrorCause::NotFound),
+            None => Err(ProcessError::ListItemNotFound),
         }
     }
 
@@ -49,27 +48,27 @@ impl<'a> List<'a> {
         self.tasks.clear();
     }
 
-    pub fn mark_done(&mut self, index: usize) -> Result<(), ErrorCause> {
+    pub fn mark_done(&mut self, index: usize) -> Result<(), ProcessError> {
         match self.tasks.get_mut(index) {
             Some(task) => {
                 task.done();
                 Ok(())
             }
-            None => Err(ErrorCause::NotFound),
+            None => Err(ProcessError::ListItemNotFound),
         }
     }
 
-    pub fn mark_undone(&mut self, index: usize) -> Result<(), ErrorCause> {
+    pub fn mark_undone(&mut self, index: usize) -> Result<(), ProcessError> {
         match self.tasks.get_mut(index) {
             Some(task) => {
                 task.undone();
                 Ok(())
             }
-            None => Err(ErrorCause::NotFound),
+            None => Err(ProcessError::ListItemNotFound),
         }
     }
 
-    pub fn dump(&mut self) -> &Vec<Task<'a>> {
+    pub fn dump(&mut self) -> &Vec<Task> {
         &self.tasks
     }
 }
