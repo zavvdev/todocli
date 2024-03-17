@@ -9,7 +9,9 @@ pub fn is_arguments_integer(arguments: &Vec<&str>) -> bool {
                 return false;
             }
         }
+
+        return true;
     }
 
-    true
+    false
 }
