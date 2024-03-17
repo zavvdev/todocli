@@ -2,7 +2,6 @@ mod config;
 mod controllers;
 mod models;
 mod parsers;
-mod services;
 mod validators;
 
 use crate::config::{ProcessError, ProcessResult};
@@ -13,6 +12,8 @@ use crate::models::state::State;
 fn main() {
     let mut list = List::new();
     let mut state = State::new();
+        
+    println!("-------ToDo CLI-------");
 
     loop {
         print!("> ");

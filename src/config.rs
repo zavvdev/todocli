@@ -23,3 +23,6 @@ pub const C_UNDONE: &str = "undone";
 pub const C_CLEAR: &str = "clear";
 pub const C_SAVE: &str = "save";
 pub const C_LOAD: &str = "LOAD";
+
+pub const C_Y: &str = "y";
+pub const C_YES: &str = "yes";
