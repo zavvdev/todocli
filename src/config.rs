@@ -2,11 +2,17 @@ pub enum ProcessError {
     ListCapacityExceeded,
     ListItemNotFound,
     TaskIndexMissing,
+    InvalidArguments,
+    UnknownCommand,
+    CannotCreateFile,
+    CannotWriteToFile,
 }
 
 pub enum ProcessResult {
+    Sh,
     Ok,
     Terminate,
+    Feedback(String),
     Error(ProcessError),
 }
 

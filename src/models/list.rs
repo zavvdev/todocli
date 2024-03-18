@@ -71,4 +71,8 @@ impl List {
     pub fn dump(&mut self) -> &Vec<Task> {
         &self.tasks
     }
+
+    pub fn is_empty(&mut self) -> bool {
+        self.tasks.is_empty()
+    }
 }

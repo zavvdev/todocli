@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Task {
     pub text: String,
     pub is_done: bool,

@@ -1,17 +1,20 @@
+use std::{
+    fs::File,
+    io::{self, Write},
+};
+
 use crate::{
-    config::{ProcessError, ProcessResult, C_ADD, C_CLEAR, C_EDIT, C_REMOVE},
+    config::{ProcessError, ProcessResult, C_ADD, C_CLEAR, C_EDIT, C_REMOVE, C_SAVE},
     models::{
         list::List,
         state::{State, Status},
     },
-    parsers::command_parser::{self, ParseResult},
+    parsers::{
+        command_parser::{self, ParseResult},
+        task_parser,
+    },
     validators,
 };
-
-fn invalid_arguments_result() -> ProcessResult {
-    println!("Invalid arguments");
-    ProcessResult::Ok
-}
 
 fn extract_index_from_args(args: &Vec<&str>) -> usize {
     args.first().unwrap().parse::<usize>().unwrap() - 1
@@ -20,55 +23,43 @@ fn extract_index_from_args(args: &Vec<&str>) -> usize {
 // ==========================================================
 
 pub fn exit() -> ProcessResult {
-    println!("Bye!");
     ProcessResult::Terminate
 }
 
 // ==========================================================
 
 pub fn help() -> ProcessResult {
-    println!("exit     - Exit program");
-    println!("help     - View available commands");
-    println!("list     - View all tasks");
-    println!("clear    - Clear tasks");
-    println!("add      - Add new task");
-    println!("edit 2   - Edit task by index where 2 is index");
-    println!("remove 2 - Delete task by index where 2 is index");
-    println!("done 2   - Mark task as DONE where 2 is index");
-    println!("undone 2 - Mark task as UNDONE where 2 is index");
-    println!("save     - Save list to external file");
-    println!("load     - Load list from external file");
+    let feedback = "exit     - Exit program
+help     - View available commands
+list     - View all tasks
+clear    - Clear tasks
+add      - Add new task
+edit 2   - Edit task by index where 2 is index
+remove 2 - Delete task by index where 2 is index
+done 2   - Mark task as DONE where 2 is index
+undone 2 - Mark task as UNDONE where 2 is index
+save     - Save list to external file
+load     - Load list from external file";
 
-    ProcessResult::Ok
+    ProcessResult::Feedback(feedback.to_string())
 }
 
 // ==========================================================
 
 pub fn list(l: &mut List) -> ProcessResult {
-    for (index, task) in l.dump().iter().enumerate() {
-        let status = match task.is_done {
-            true => "[+]",
-            false => "[ ]",
-        };
-
-        println!("{}) {} {}", index + 1, status, task.text);
-    }
-
-    ProcessResult::Ok
+    ProcessResult::Feedback(task_parser::to_text(&l.dump()))
 }
 
 // ==========================================================
 
 pub fn add(state: &mut State) -> ProcessResult {
-    println!("Enter your todo");
     state.set(C_ADD, Status::NeedPlainText, None);
-    ProcessResult::Ok
+    ProcessResult::Feedback("enter task".to_string())
 }
 
 pub fn add_text(text: String, list: &mut List, state: &mut State) -> ProcessResult {
     match list.add(text) {
         Ok(()) => {
-            println!("Task added successfully");
             state.reset();
             ProcessResult::Ok
         }
@@ -84,22 +75,20 @@ pub fn edit(parse_result: ParseResult, list: &mut List, state: &mut State) -> Pr
 
         return match list.get(index) {
             Some(task) => {
-                println!("Provide new text for task: {}", task.text);
                 state.set(C_EDIT, Status::NeedPlainText, Some(index));
-                ProcessResult::Ok
+                ProcessResult::Feedback(format!("provide new text for task: {}", task.text))
             }
             None => ProcessResult::Error(ProcessError::ListItemNotFound),
         };
     }
 
-    self::invalid_arguments_result()
+    ProcessResult::Error(ProcessError::InvalidArguments)
 }
 
 pub fn edit_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
     if let Some(index) = state.task_index {
         match list.alter(index, raw_input) {
             Ok(()) => {
-                println!("Task edited successfully");
                 state.reset();
                 ProcessResult::Ok
             }
@@ -118,18 +107,14 @@ pub fn remove(parse_result: ParseResult, list: &mut List, state: &mut State) -> 
 
         return match list.get(index) {
             Some(task) => {
-                println!(
-                    "Are you sure you want to remove \"{}\" task? (Yes/No)",
-                    task.text
-                );
                 state.set(C_REMOVE, Status::NeedConfirmation, Some(index));
-                ProcessResult::Ok
+                ProcessResult::Feedback(format!("remove \"{}\" task? (yes/no)", task.text))
             }
             None => ProcessResult::Error(ProcessError::ListItemNotFound),
         };
     }
 
-    self::invalid_arguments_result()
+    ProcessResult::Error(ProcessError::InvalidArguments)
 }
 
 pub fn remove_confirm(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
@@ -137,7 +122,6 @@ pub fn remove_confirm(raw_input: String, list: &mut List, state: &mut State) -> 
         if let Some(index) = state.task_index {
             match list.remove(index) {
                 Ok(()) => {
-                    println!("Task removed successfully");
                     state.reset();
                     ProcessResult::Ok
                 }
@@ -147,7 +131,7 @@ pub fn remove_confirm(raw_input: String, list: &mut List, state: &mut State) -> 
             ProcessResult::Error(ProcessError::TaskIndexMissing)
         }
     } else {
-        ProcessResult::Ok
+        ProcessResult::Sh
     }
 }
 
@@ -158,15 +142,12 @@ pub fn done(parse_result: ParseResult, list: &mut List) -> ProcessResult {
         let index = self::extract_index_from_args(&parse_result.arguments);
 
         return match list.mark_done(index) {
-            Ok(()) => {
-                println!("Task marked as DONE");
-                ProcessResult::Ok
-            }
+            Ok(()) => ProcessResult::Ok,
             Err(cause) => ProcessResult::Error(cause),
         };
     }
 
-    self::invalid_arguments_result()
+    ProcessResult::Error(ProcessError::InvalidArguments)
 }
 
 // ==========================================================
@@ -176,39 +157,68 @@ pub fn undone(parse_result: ParseResult, list: &mut List) -> ProcessResult {
         let index = self::extract_index_from_args(&parse_result.arguments);
 
         return match list.mark_undone(index) {
-            Ok(()) => {
-                println!("Task marked as UNDONE");
-                ProcessResult::Ok
-            }
+            Ok(()) => ProcessResult::Ok,
             Err(cause) => ProcessResult::Error(cause),
         };
     }
 
-    self::invalid_arguments_result()
+    ProcessResult::Error(ProcessError::InvalidArguments)
 }
 
 // ==========================================================
 
-pub fn clear(state: &mut State) -> ProcessResult {
-    println!("Are you sure you want to remove all tasks? (Yes/No)");
-    state.set(C_CLEAR, Status::NeedConfirmation, None);
-    ProcessResult::Ok
+pub fn clear(list: &mut List, state: &mut State) -> ProcessResult {
+    if list.is_empty() {
+        ProcessResult::Feedback("empty".to_string())
+    } else {
+        println!();
+        state.set(C_CLEAR, Status::NeedConfirmation, None);
+        ProcessResult::Feedback("remove all? (yes/no)".to_string())
+    }
 }
 
 pub fn clear_confirm(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
+    state.reset();
+
     if command_parser::is_confirm(&raw_input) {
         list.clear();
-        println!("All tasks removed sucessfully");
+        ProcessResult::Ok
+    } else {
+        ProcessResult::Sh
     }
-    
-    state.reset();
-    ProcessResult::Ok
 }
 
 // ==========================================================
 
-pub fn save() -> ProcessResult {
-    ProcessResult::Ok
+pub fn save(list: &mut List, state: &mut State) -> ProcessResult {
+    if list.is_empty() {
+        ProcessResult::Feedback("empty".to_string())
+    } else {
+        state.set(C_SAVE, Status::NeedPlainText, None);
+        ProcessResult::Feedback("where?".to_string())
+    }
+}
+
+pub fn save_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
+    let mut result = ProcessResult::Ok;
+
+    match File::create(raw_input) {
+        io::Result::Ok(ref mut file) => {
+            match file.write_all(task_parser::to_text(&list.dump()).as_bytes()) {
+                Ok(..) => {
+                    state.reset();
+                }
+                Err(..) => {
+                    result = ProcessResult::Error(ProcessError::CannotWriteToFile);
+                }
+            }
+        }
+        io::Result::Err(..) => {
+            result = ProcessResult::Error(ProcessError::CannotCreateFile);
+        }
+    };
+
+    result
 }
 
 // ==========================================================

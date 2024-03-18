@@ -12,21 +12,33 @@ use crate::models::state::State;
 fn main() {
     let mut list = List::new();
     let mut state = State::new();
-        
-    println!("-------ToDo CLI-------");
+
+    println!("-------todocli-------");
 
     loop {
         print!("> ");
 
         match input::process(input::accept(), &mut list, &mut state) {
-            ProcessResult::Ok => continue,
-            ProcessResult::Terminate => break,
+            ProcessResult::Sh => continue,
+            ProcessResult::Ok => {
+                println!("ok.");
+                continue;
+            }
+            ProcessResult::Feedback(feedback) => println!("{feedback}"),
+            ProcessResult::Terminate => {
+                println!("bye!");
+                break;
+            }
             ProcessResult::Error(cause) => {
                 state.reset();
                 match cause {
-                    ProcessError::ListCapacityExceeded => println!("List capacity exceeded"),
-                    ProcessError::ListItemNotFound => println!("List item not found"),
-                    ProcessError::TaskIndexMissing => println!("Task index missing"),
+                    ProcessError::ListCapacityExceeded => println!("list capacity exceeded"),
+                    ProcessError::ListItemNotFound => println!("list item not found"),
+                    ProcessError::TaskIndexMissing => println!("missing"),
+                    ProcessError::InvalidArguments => println!("invalid arguments"),
+                    ProcessError::UnknownCommand => println!("unknown command"),
+                    ProcessError::CannotCreateFile => println!("can't create file"),
+                    ProcessError::CannotWriteToFile => println!("can't write to file"),
                 }
             }
         }

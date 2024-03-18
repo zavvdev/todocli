@@ -1,5 +1,6 @@
 use crate::config::{
-    C_ADD, C_CLEAR, C_DONE, C_EDIT, C_EXIT, C_HELP, C_LIST, C_LOAD, C_REMOVE, C_SAVE, C_UNDONE,
+    ProcessError, C_ADD, C_CLEAR, C_DONE, C_EDIT, C_EXIT, C_HELP, C_LIST, C_LOAD, C_REMOVE, C_SAVE,
+    C_UNDONE,
 };
 use crate::controllers::action;
 use crate::models::state::{State, Status};
@@ -26,6 +27,7 @@ pub fn process(input: String, list: &mut List, state: &mut State) -> ProcessResu
             Some(Status::NeedPlainText) => match state.command {
                 Some(C_ADD) => action::add_text(raw_input, list, state),
                 Some(C_EDIT) => action::edit_text(raw_input, list, state),
+                Some(C_SAVE) => action::save_text(raw_input, list, state),
                 _ => ProcessResult::Ok,
             },
             Some(Status::NeedConfirmation) => match state.command {
@@ -47,13 +49,10 @@ pub fn process(input: String, list: &mut List, state: &mut State) -> ProcessResu
             C_REMOVE => action::remove(parse_result, list, state),
             C_DONE => action::done(parse_result, list),
             C_UNDONE => action::undone(parse_result, list),
-            C_CLEAR => action::clear(state),
-            C_SAVE => action::save(),
+            C_CLEAR => action::clear(list, state),
+            C_SAVE => action::save(list, state),
             C_LOAD => action::load(),
-            _ => {
-                println!("Unknown command");
-                ProcessResult::Ok
-            }
+            _ => ProcessResult::Error(ProcessError::UnknownCommand),
         }
     }
 }
