@@ -10,11 +10,6 @@ pub fn is_confirm(target: &str) -> bool {
     target == C_Y || target == C_YES
 }
 
-pub fn parse_raw(target: String) -> String {
-    let entries: Vec<&str> = target.split_whitespace().collect();
-    entries.join(" ")
-}
-
 pub fn parse<'a>(target: &'a str) -> ParseResult<'a> {
     let entries: Vec<&str> = target.split_whitespace().collect();
 

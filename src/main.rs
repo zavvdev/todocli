@@ -3,6 +3,7 @@ mod controllers;
 mod models;
 mod parsers;
 mod validators;
+mod utils;
 
 use crate::config::{ProcessError, ProcessResult};
 use crate::controllers::input;
@@ -39,6 +40,7 @@ fn main() {
                     ProcessError::UnknownCommand => println!("unknown command"),
                     ProcessError::CannotCreateFile => println!("can't create file"),
                     ProcessError::CannotWriteToFile => println!("can't write to file"),
+                    ProcessError::CannotLoadFile => println!("can't load from file"),
                 }
             }
         }

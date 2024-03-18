@@ -5,6 +5,7 @@ use crate::config::{
 use crate::controllers::action;
 use crate::models::state::{State, Status};
 use crate::parsers::command_parser;
+use crate::utils;
 use crate::{config::ProcessResult, models::list::List};
 use std::io::{self, Write};
 
@@ -21,21 +22,22 @@ pub fn accept() -> String {
 
 pub fn process(input: String, list: &mut List, state: &mut State) -> ProcessResult {
     if state.status.is_some() {
-        let raw_input = command_parser::parse_raw(input);
+        let raw_input = utils::trim_str(&input);
 
         match state.status {
             Some(Status::NeedPlainText) => match state.command {
                 Some(C_ADD) => action::add_text(raw_input, list, state),
                 Some(C_EDIT) => action::edit_text(raw_input, list, state),
                 Some(C_SAVE) => action::save_text(raw_input, list, state),
-                _ => ProcessResult::Ok,
+                Some(C_LOAD) => action::load_text(raw_input, list, state),
+                _ => ProcessResult::Sh,
             },
             Some(Status::NeedConfirmation) => match state.command {
                 Some(C_REMOVE) => action::remove_confirm(raw_input, list, state),
                 Some(C_CLEAR) => action::clear_confirm(raw_input, list, state),
-                _ => ProcessResult::Ok,
+                _ => ProcessResult::Sh,
             },
-            None => ProcessResult::Ok,
+            None => ProcessResult::Sh,
         }
     } else {
         let parse_result = command_parser::parse(&input);
@@ -51,7 +53,7 @@ pub fn process(input: String, list: &mut List, state: &mut State) -> ProcessResu
             C_UNDONE => action::undone(parse_result, list),
             C_CLEAR => action::clear(list, state),
             C_SAVE => action::save(list, state),
-            C_LOAD => action::load(),
+            C_LOAD => action::load(state),
             _ => ProcessResult::Error(ProcessError::UnknownCommand),
         }
     }

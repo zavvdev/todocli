@@ -72,6 +72,10 @@ impl List {
         &self.tasks
     }
 
+    pub fn populate(&mut self, tasks: Vec<Task>) {
+        self.tasks = tasks;
+    }
+
     pub fn is_empty(&mut self) -> bool {
         self.tasks.is_empty()
     }

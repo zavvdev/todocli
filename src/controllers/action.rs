@@ -1,10 +1,10 @@
 use std::{
     fs::File,
-    io::{self, Write},
+    io::{self, Read, Write},
 };
 
 use crate::{
-    config::{ProcessError, ProcessResult, C_ADD, C_CLEAR, C_EDIT, C_REMOVE, C_SAVE},
+    config::{ProcessError, ProcessResult, C_ADD, C_CLEAR, C_EDIT, C_LOAD, C_REMOVE, C_SAVE},
     models::{
         list::List,
         state::{State, Status},
@@ -223,8 +223,35 @@ pub fn save_text(raw_input: String, list: &mut List, state: &mut State) -> Proce
 
 // ==========================================================
 
-pub fn load() -> ProcessResult {
-    ProcessResult::Ok
+pub fn load(state: &mut State) -> ProcessResult {
+    state.set(C_LOAD, Status::NeedPlainText, None);
+    ProcessResult::Feedback("from where?".to_string())
 }
 
+pub fn load_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
+    let mut contents = String::new();
+    let mut result = ProcessResult::Ok;
+
+    match File::open(raw_input) {
+        io::Result::Ok(ref mut file) => match file.read_to_string(&mut contents) {
+            io::Result::Ok(..) => match task_parser::from_text(&contents) {
+                Ok(tasks) => {
+                    state.reset();
+                    list.populate(tasks);
+                }
+                Err(..) => {
+                    result = ProcessResult::Error(ProcessError::CannotLoadFile);
+                }
+            },
+            io::Result::Err(..) => {
+                result = ProcessResult::Error(ProcessError::CannotLoadFile);
+            }
+        },
+        Err(..) => {
+            result = ProcessResult::Error(ProcessError::CannotLoadFile);
+        }
+    }
+
+    result
+}
 // ==========================================================
