@@ -38,8 +38,8 @@ edit 2   - Edit task by index where 2 is index
 remove 2 - Delete task by index where 2 is index
 done 2   - Mark task as DONE where 2 is index
 undone 2 - Mark task as UNDONE where 2 is index
-save     - Save list to external file
-load     - Load list from external file";
+save     - Save list to file
+load     - Load list from file";
 
     ProcessResult::Feedback(feedback.to_string())
 }
