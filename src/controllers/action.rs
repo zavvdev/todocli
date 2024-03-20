@@ -13,7 +13,7 @@ use crate::{
         command_parser::{self, ParseResult},
         task_parser,
     },
-    validators,
+    utils,
 };
 
 fn extract_index_from_args(args: &Vec<&str>) -> usize {
@@ -70,7 +70,7 @@ pub fn add_text(text: String, list: &mut List, state: &mut State) -> ProcessResu
 // ==========================================================
 
 pub fn edit(parse_result: ParseResult, list: &mut List, state: &mut State) -> ProcessResult {
-    if validators::is_arguments_integer(&parse_result.arguments) {
+    if utils::is_arguments_integer(&parse_result.arguments) {
         let index = self::extract_index_from_args(&parse_result.arguments);
 
         return match list.get(index) {
@@ -102,7 +102,7 @@ pub fn edit_text(raw_input: String, list: &mut List, state: &mut State) -> Proce
 // ==========================================================
 
 pub fn remove(parse_result: ParseResult, list: &mut List, state: &mut State) -> ProcessResult {
-    if validators::is_arguments_integer(&parse_result.arguments) {
+    if utils::is_arguments_integer(&parse_result.arguments) {
         let index = self::extract_index_from_args(&parse_result.arguments);
 
         return match list.get(index) {
@@ -138,7 +138,7 @@ pub fn remove_confirm(raw_input: String, list: &mut List, state: &mut State) -> 
 // ==========================================================
 
 pub fn done(parse_result: ParseResult, list: &mut List) -> ProcessResult {
-    if validators::is_arguments_integer(&parse_result.arguments) {
+    if utils::is_arguments_integer(&parse_result.arguments) {
         let index = self::extract_index_from_args(&parse_result.arguments);
 
         return match list.mark_done(index) {
@@ -153,7 +153,7 @@ pub fn done(parse_result: ParseResult, list: &mut List) -> ProcessResult {
 // ==========================================================
 
 pub fn undone(parse_result: ParseResult, list: &mut List) -> ProcessResult {
-    if validators::is_arguments_integer(&parse_result.arguments) {
+    if utils::is_arguments_integer(&parse_result.arguments) {
         let index = self::extract_index_from_args(&parse_result.arguments);
 
         return match list.mark_undone(index) {

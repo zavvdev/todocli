@@ -2,7 +2,6 @@ mod config;
 mod controllers;
 mod models;
 mod parsers;
-mod validators;
 mod utils;
 
 use crate::config::{ProcessError, ProcessResult};
