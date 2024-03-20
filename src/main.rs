@@ -37,7 +37,6 @@ fn main() {
                     ProcessError::TaskIndexMissing => println!("missing"),
                     ProcessError::InvalidArguments => println!("invalid arguments"),
                     ProcessError::UnknownCommand => println!("unknown command"),
-                    ProcessError::CannotCreateFile => println!("can't create file"),
                     ProcessError::CannotWriteToFile => println!("can't write to file"),
                     ProcessError::CannotLoadFile => println!("can't load from file"),
                 }

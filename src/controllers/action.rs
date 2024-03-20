@@ -1,7 +1,4 @@
-use std::{
-    fs::File,
-    io::{self, Read, Write},
-};
+use std::fs;
 
 use crate::{
     config::{ProcessError, ProcessResult, C_ADD, C_CLEAR, C_EDIT, C_LOAD, C_REMOVE, C_SAVE},
@@ -202,21 +199,14 @@ pub fn save(list: &mut List, state: &mut State) -> ProcessResult {
 pub fn save_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
     let mut result = ProcessResult::Ok;
 
-    match File::create(raw_input) {
-        io::Result::Ok(ref mut file) => {
-            match file.write_all(task_parser::to_text(&list.dump()).as_bytes()) {
-                Ok(..) => {
-                    state.reset();
-                }
-                Err(..) => {
-                    result = ProcessResult::Error(ProcessError::CannotWriteToFile);
-                }
-            }
+    match fs::write(raw_input, task_parser::to_text(&list.dump()).as_bytes()) {
+        Ok(..) => {
+            state.reset();
         }
-        io::Result::Err(..) => {
-            result = ProcessResult::Error(ProcessError::CannotCreateFile);
+        Err(..) => {
+            result = ProcessResult::Error(ProcessError::CannotWriteToFile);
         }
-    };
+    }
 
     result
 }
@@ -229,21 +219,15 @@ pub fn load(state: &mut State) -> ProcessResult {
 }
 
 pub fn load_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
-    let mut contents = String::new();
     let mut result = ProcessResult::Ok;
 
-    match File::open(raw_input) {
-        io::Result::Ok(ref mut file) => match file.read_to_string(&mut contents) {
-            io::Result::Ok(..) => match task_parser::from_text(&contents) {
-                Ok(tasks) => {
-                    state.reset();
-                    list.populate(tasks);
-                }
-                Err(..) => {
-                    result = ProcessResult::Error(ProcessError::CannotLoadFile);
-                }
-            },
-            io::Result::Err(..) => {
+    match fs::read_to_string(raw_input) {
+        Result::Ok(contents) => match task_parser::from_text(&contents) {
+            Ok(tasks) => {
+                state.reset();
+                list.populate(tasks);
+            }
+            Err(..) => {
                 result = ProcessResult::Error(ProcessError::CannotLoadFile);
             }
         },

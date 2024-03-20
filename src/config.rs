@@ -4,7 +4,6 @@ pub enum ProcessError {
     TaskIndexMissing,
     InvalidArguments,
     UnknownCommand,
-    CannotCreateFile,
     CannotWriteToFile,
     CannotLoadFile,
 }
