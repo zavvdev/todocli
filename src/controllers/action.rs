@@ -6,10 +6,7 @@ use crate::{
         list::List,
         state::{State, Status},
     },
-    parsers::{
-        command_parser::{self, ParseResult},
-        task_parser,
-    },
+    command_parser::{self, ParseResult},
     utils,
 };
 
@@ -44,7 +41,7 @@ load     - Load list from file";
 // ==========================================================
 
 pub fn list(l: &mut List) -> ProcessResult {
-    ProcessResult::Feedback(task_parser::to_text(&l.dump()))
+    ProcessResult::Feedback(l.to_text())
 }
 
 // ==========================================================
@@ -199,7 +196,7 @@ pub fn save(list: &mut List, state: &mut State) -> ProcessResult {
 pub fn save_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
     let mut result = ProcessResult::Ok;
 
-    match fs::write(raw_input, task_parser::to_text(&list.dump()).as_bytes()) {
+    match fs::write(raw_input, list.to_text().as_bytes()) {
         Ok(..) => {
             state.reset();
         }
@@ -222,10 +219,9 @@ pub fn load_text(raw_input: String, list: &mut List, state: &mut State) -> Proce
     let mut result = ProcessResult::Ok;
 
     match fs::read_to_string(raw_input) {
-        Result::Ok(contents) => match task_parser::from_text(&contents) {
-            Ok(tasks) => {
+        Result::Ok(contents) => match list.from_text(&contents) {
+            Ok(..) => {
                 state.reset();
-                list.populate(tasks);
             }
             Err(..) => {
                 result = ProcessResult::Error(ProcessError::CannotLoadFile);

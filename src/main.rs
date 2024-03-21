@@ -1,7 +1,7 @@
 mod config;
 mod controllers;
 mod models;
-mod parsers;
+mod command_parser;
 mod utils;
 
 use crate::config::{ProcessError, ProcessResult};

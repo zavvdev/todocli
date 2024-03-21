@@ -4,7 +4,7 @@ use crate::config::{
 };
 use crate::controllers::action;
 use crate::models::state::{State, Status};
-use crate::parsers::command_parser;
+use crate::command_parser;
 use crate::utils;
 use crate::{config::ProcessResult, models::list::List};
 use std::io::{self, Write};
