@@ -1,10 +1,18 @@
 use regex::Regex;
-
-use crate::models::task::Task;
-use crate::{config::*, utils};
+use crate::{config::TASKS_LIST_MAX_CAPACITY, utils};
 
 const DONE_MARK: &str = "[+]";
 const UNDONE_MARK: &str = "[ ]";
+
+enum Error {
+    CapacityExceeded,
+    ItemNotFound,
+}
+
+struct Task {
+    pub text: String,
+    pub is_done: bool,
+}
 
 pub struct List {
     tasks: Vec<Task>,
@@ -21,31 +29,34 @@ impl List {
         self.tasks.get(index)
     }
 
-    pub fn add(&mut self, text: String) -> Result<(), ProcessError> {
+    pub fn add(&mut self, text: String) -> Result<(), Error> {
         if self.tasks.len() < self.tasks.capacity() {
-            self.tasks.push(Task::new(text));
+            self.tasks.push(Task {
+                text,
+                is_done: false,
+            });
             return Ok(());
         }
 
-        Err(ProcessError::ListCapacityExceeded)
+        Err(Error::CapacityExceeded)
     }
 
-    pub fn remove(&mut self, index: usize) -> Result<(), ProcessError> {
+    pub fn remove(&mut self, index: usize) -> Result<(), Error> {
         if index < self.tasks.len() {
             self.tasks.remove(index);
             return Ok(());
         }
 
-        Err(ProcessError::ListItemNotFound)
+        Err(Error::ItemNotFound)
     }
 
-    pub fn alter(&mut self, index: usize, next_text: String) -> Result<(), ProcessError> {
+    pub fn alter(&mut self, index: usize, next_text: String) -> Result<(), Error> {
         match self.tasks.get_mut(index) {
             Some(task) => {
-                task.alter(next_text);
+                task.text = next_text;
                 Ok(())
             }
-            None => Err(ProcessError::ListItemNotFound),
+            None => Err(Error::ItemNotFound),
         }
     }
 
@@ -53,23 +64,23 @@ impl List {
         self.tasks.clear();
     }
 
-    pub fn mark_done(&mut self, index: usize) -> Result<(), ProcessError> {
+    pub fn mark_done(&mut self, index: usize) -> Result<(), Error> {
         match self.tasks.get_mut(index) {
             Some(task) => {
-                task.done();
+                task.is_done = true;
                 Ok(())
             }
-            None => Err(ProcessError::ListItemNotFound),
+            None => Err(Error::ItemNotFound),
         }
     }
 
-    pub fn mark_undone(&mut self, index: usize) -> Result<(), ProcessError> {
+    pub fn mark_undone(&mut self, index: usize) -> Result<(), Error> {
         match self.tasks.get_mut(index) {
             Some(task) => {
-                task.undone();
+                task.is_done = false;
                 Ok(())
             }
-            None => Err(ProcessError::ListItemNotFound),
+            None => Err(Error::ItemNotFound),
         }
     }
 
