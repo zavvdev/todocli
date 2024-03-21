@@ -40,3 +40,48 @@ pub fn from_text(text: &str) -> Result<Vec<Task>, ()> {
         Err(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_text() {
+        let expected = String::from("1) [ ] test1;\n2) [+] test2;\n");
+
+        let task1 = Task {
+            text: "test1".to_string(),
+            is_done: false,
+        };
+
+        let task2 = Task {
+            text: "test2".to_string(),
+            is_done: true,
+        };
+
+        let result = to_text(&vec![task1, task2]);
+
+        assert!(expected == result);
+    }
+
+    #[test]
+    fn test_from_text() {
+        let expected = vec![
+            Task {
+                text: "test1".to_string(),
+                is_done: false,
+            },
+            Task {
+                text: "test2".to_string(),
+                is_done: true,
+            },
+        ];
+
+        let result = from_text("1) [ ] test1;\n2) [+] test2;\n").unwrap();
+
+        for (index, task) in result.iter().enumerate() {
+            assert!(task.text == expected.get(index).unwrap().text);
+            assert!(task.is_done == expected.get(index).unwrap().is_done);
+        }
+    }
+}
