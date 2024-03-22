@@ -1,28 +1,53 @@
-use std::fs;
-
 use crate::{
-    config::{ProcessError, ProcessResult, C_ADD, C_CLEAR, C_EDIT, C_LOAD, C_REMOVE, C_SAVE},
+    command_parser::{self, ParseResult},
+    config::{
+        C_ADD, C_CLEAR, C_DONE, C_EDIT, C_EXIT, C_HELP, C_LIST, C_LOAD, C_REMOVE, C_SAVE, C_UNDONE,
+    },
     models::{
-        list::List,
+        list::{self, List},
         state::{State, Status},
     },
-    command_parser::{self, ParseResult},
     utils,
 };
+use std::fs;
+
+pub enum ActionResult {
+    Sh,
+    Ok,
+    Terminate,
+    ListFull,
+    ListEmpty,
+    TaskNotFound,
+    FileReadError,
+    UnknownCommand,
+    InvalidArguments,
+    NeedConfirm,
+    NeedFilePath,
+    NeedTask,
+    CannotSave,
+    CannotLoad,
+    Feedback(String),
+}
 
 fn extract_index_from_args(args: &Vec<&str>) -> usize {
     args.first().unwrap().parse::<usize>().unwrap() - 1
 }
 
-// ==========================================================
-
-pub fn exit() -> ProcessResult {
-    ProcessResult::Terminate
+fn map_list_error(e: list::Error) -> ActionResult {
+    match e {
+        list::Error::CapacityExceeded => ActionResult::ListFull,
+        list::Error::ItemNotFound => ActionResult::TaskNotFound,
+        list::Error::InvalidPattern => ActionResult::FileReadError,
+    }
 }
 
-// ==========================================================
+// =========== Actions ===========
 
-pub fn help() -> ProcessResult {
+fn exit() -> ActionResult {
+    ActionResult::Terminate
+}
+
+fn help() -> ActionResult {
     let feedback = "exit     - Exit program
 help     - View available commands
 list     - View all tasks
@@ -35,203 +60,225 @@ undone 2 - Mark task as UNDONE where 2 is index
 save     - Save list to file
 load     - Load list from file";
 
-    ProcessResult::Feedback(feedback.to_string())
+    ActionResult::Feedback(feedback.to_string())
 }
 
-// ==========================================================
-
-pub fn list(l: &mut List) -> ProcessResult {
-    ProcessResult::Feedback(l.to_text())
+fn list(l: &mut List) -> ActionResult {
+    ActionResult::Feedback(l.to_text().to_string())
 }
 
-// ==========================================================
-
-pub fn add(state: &mut State) -> ProcessResult {
+fn add(state: &mut State) -> ActionResult {
     state.set(C_ADD, Status::NeedPlainText, None);
-    ProcessResult::Feedback("enter task".to_string())
+    ActionResult::NeedTask
 }
 
-pub fn add_text(text: String, list: &mut List, state: &mut State) -> ProcessResult {
+fn add_text(text: String, list: &mut List, state: &mut State) -> ActionResult {
     match list.add(text) {
         Ok(()) => {
             state.reset();
-            ProcessResult::Ok
+            ActionResult::Ok
         }
-        Err(cause) => ProcessResult::Error(cause),
+        Err(e) => map_list_error(e),
     }
 }
 
-// ==========================================================
-
-pub fn edit(parse_result: ParseResult, list: &mut List, state: &mut State) -> ProcessResult {
-    if utils::is_arguments_integer(&parse_result.arguments) {
-        let index = self::extract_index_from_args(&parse_result.arguments);
-
-        return match list.get(index) {
-            Some(task) => {
-                state.set(C_EDIT, Status::NeedPlainText, Some(index));
-                ProcessResult::Feedback(format!("provide new text for task: {}", task.text))
-            }
-            None => ProcessResult::Error(ProcessError::ListItemNotFound),
-        };
+fn edit(parse_result: ParseResult, list: &mut List, state: &mut State) -> ActionResult {
+    if !utils::are_strings_integers(&parse_result.arguments) {
+        return ActionResult::InvalidArguments;
     }
 
-    ProcessResult::Error(ProcessError::InvalidArguments)
+    let index = self::extract_index_from_args(&parse_result.arguments);
+
+    match list.get(index) {
+        Ok(..) => {
+            state.set(C_EDIT, Status::NeedPlainText, Some(index));
+            ActionResult::NeedTask
+        }
+        Err(e) => map_list_error(e),
+    }
 }
 
-pub fn edit_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
+fn edit_text(raw_input: String, list: &mut List, state: &mut State) -> ActionResult {
     if let Some(index) = state.task_index {
         match list.alter(index, raw_input) {
             Ok(()) => {
                 state.reset();
-                ProcessResult::Ok
+                ActionResult::Ok
             }
-            Err(cause) => ProcessResult::Error(cause),
+            Err(e) => map_list_error(e),
         }
     } else {
-        ProcessResult::Error(ProcessError::TaskIndexMissing)
+        ActionResult::TaskNotFound
     }
 }
 
-// ==========================================================
-
-pub fn remove(parse_result: ParseResult, list: &mut List, state: &mut State) -> ProcessResult {
-    if utils::is_arguments_integer(&parse_result.arguments) {
-        let index = self::extract_index_from_args(&parse_result.arguments);
-
-        return match list.get(index) {
-            Some(task) => {
-                state.set(C_REMOVE, Status::NeedConfirmation, Some(index));
-                ProcessResult::Feedback(format!("remove \"{}\" task? (yes/no)", task.text))
-            }
-            None => ProcessResult::Error(ProcessError::ListItemNotFound),
-        };
+fn remove(parse_result: ParseResult, list: &mut List, state: &mut State) -> ActionResult {
+    if !utils::are_strings_integers(&parse_result.arguments) {
+        return ActionResult::InvalidArguments;
     }
 
-    ProcessResult::Error(ProcessError::InvalidArguments)
+    let index = self::extract_index_from_args(&parse_result.arguments);
+
+    match list.get(index) {
+        Ok(..) => {
+            state.set(C_REMOVE, Status::NeedConfirmation, Some(index));
+            ActionResult::NeedConfirm
+        }
+        Err(e) => map_list_error(e),
+    }
 }
 
-pub fn remove_confirm(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
-    if command_parser::is_confirm(&raw_input) {
-        if let Some(index) = state.task_index {
-            match list.remove(index) {
-                Ok(()) => {
-                    state.reset();
-                    ProcessResult::Ok
-                }
-                Err(cause) => ProcessResult::Error(cause),
+fn remove_confirm(raw_input: String, list: &mut List, state: &mut State) -> ActionResult {
+    if !command_parser::is_confirm(&raw_input) {
+        return ActionResult::Sh;
+    }
+
+    if let Some(index) = state.task_index {
+        match list.remove(index) {
+            Ok(()) => {
+                state.reset();
+                ActionResult::Ok
             }
-        } else {
-            ProcessResult::Error(ProcessError::TaskIndexMissing)
+            Err(e) => map_list_error(e),
         }
     } else {
-        ProcessResult::Sh
+        ActionResult::TaskNotFound
     }
 }
 
-// ==========================================================
-
-pub fn done(parse_result: ParseResult, list: &mut List) -> ProcessResult {
-    if utils::is_arguments_integer(&parse_result.arguments) {
-        let index = self::extract_index_from_args(&parse_result.arguments);
-
-        return match list.mark_done(index) {
-            Ok(()) => ProcessResult::Ok,
-            Err(cause) => ProcessResult::Error(cause),
-        };
+fn done(parse_result: ParseResult, list: &mut List) -> ActionResult {
+    if !utils::are_strings_integers(&parse_result.arguments) {
+        return ActionResult::InvalidArguments;
     }
 
-    ProcessResult::Error(ProcessError::InvalidArguments)
+    let index = self::extract_index_from_args(&parse_result.arguments);
+
+    match list.mark_done(index) {
+        Ok(()) => ActionResult::Ok,
+        Err(e) => map_list_error(e),
+    }
 }
 
-// ==========================================================
-
-pub fn undone(parse_result: ParseResult, list: &mut List) -> ProcessResult {
-    if utils::is_arguments_integer(&parse_result.arguments) {
-        let index = self::extract_index_from_args(&parse_result.arguments);
-
-        return match list.mark_undone(index) {
-            Ok(()) => ProcessResult::Ok,
-            Err(cause) => ProcessResult::Error(cause),
-        };
+fn undone(parse_result: ParseResult, list: &mut List) -> ActionResult {
+    if !utils::are_strings_integers(&parse_result.arguments) {
+        return ActionResult::InvalidArguments;
     }
 
-    ProcessResult::Error(ProcessError::InvalidArguments)
+    let index = self::extract_index_from_args(&parse_result.arguments);
+
+    match list.mark_undone(index) {
+        Ok(()) => ActionResult::Ok,
+        Err(e) => map_list_error(e),
+    }
 }
 
-// ==========================================================
-
-pub fn clear(list: &mut List, state: &mut State) -> ProcessResult {
+fn clear(list: &mut List, state: &mut State) -> ActionResult {
     if list.is_empty() {
-        ProcessResult::Feedback("empty".to_string())
+        ActionResult::ListEmpty
     } else {
         println!();
         state.set(C_CLEAR, Status::NeedConfirmation, None);
-        ProcessResult::Feedback("remove all? (yes/no)".to_string())
+        ActionResult::NeedConfirm
     }
 }
 
-pub fn clear_confirm(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
+fn clear_confirm(raw_input: String, list: &mut List, state: &mut State) -> ActionResult {
     state.reset();
 
     if command_parser::is_confirm(&raw_input) {
         list.clear();
-        ProcessResult::Ok
+        ActionResult::Ok
     } else {
-        ProcessResult::Sh
+        ActionResult::Sh
     }
 }
 
-// ==========================================================
-
-pub fn save(list: &mut List, state: &mut State) -> ProcessResult {
+fn save(list: &mut List, state: &mut State) -> ActionResult {
     if list.is_empty() {
-        ProcessResult::Feedback("empty".to_string())
+        ActionResult::ListEmpty
     } else {
         state.set(C_SAVE, Status::NeedPlainText, None);
-        ProcessResult::Feedback("where?".to_string())
+        ActionResult::NeedFilePath
     }
 }
 
-pub fn save_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
-    let mut result = ProcessResult::Ok;
+fn save_text(raw_input: String, list: &mut List, state: &mut State) -> ActionResult {
+    let mut result = ActionResult::Ok;
 
     match fs::write(raw_input, list.to_text().as_bytes()) {
         Ok(..) => {
             state.reset();
         }
         Err(..) => {
-            result = ProcessResult::Error(ProcessError::CannotWriteToFile);
+            result = ActionResult::CannotSave;
         }
     }
 
     result
 }
 
-// ==========================================================
-
-pub fn load(state: &mut State) -> ProcessResult {
+fn load(state: &mut State) -> ActionResult {
     state.set(C_LOAD, Status::NeedPlainText, None);
-    ProcessResult::Feedback("from where?".to_string())
+    ActionResult::NeedFilePath
 }
 
-pub fn load_text(raw_input: String, list: &mut List, state: &mut State) -> ProcessResult {
-    let mut result = ProcessResult::Ok;
+fn load_text(raw_input: String, list: &mut List, state: &mut State) -> ActionResult {
+    let mut result = ActionResult::Ok;
 
     match fs::read_to_string(raw_input) {
         Result::Ok(contents) => match list.from_text(&contents) {
             Ok(..) => {
                 state.reset();
             }
-            Err(..) => {
-                result = ProcessResult::Error(ProcessError::CannotLoadFile);
+            Err(e) => {
+                result = map_list_error(e);
             }
         },
         Err(..) => {
-            result = ProcessResult::Error(ProcessError::CannotLoadFile);
+            result = ActionResult::CannotLoad;
         }
     }
 
     result
 }
-// ==========================================================
+
+// =========== Process Action ===========
+
+pub fn process(input: String, list: &mut List, state: &mut State) -> ActionResult {
+    if state.status.is_some() {
+        let raw_input = utils::trim_str(&input);
+
+        match state.status {
+            Some(Status::NeedPlainText) => match state.command {
+                Some(C_ADD) => self::add_text(raw_input, list, state),
+                Some(C_EDIT) => self::edit_text(raw_input, list, state),
+                Some(C_SAVE) => self::save_text(raw_input, list, state),
+                Some(C_LOAD) => self::load_text(raw_input, list, state),
+                _ => ActionResult::Sh,
+            },
+            Some(Status::NeedConfirmation) => match state.command {
+                Some(C_REMOVE) => self::remove_confirm(raw_input, list, state),
+                Some(C_CLEAR) => self::clear_confirm(raw_input, list, state),
+                _ => ActionResult::Sh,
+            },
+            None => ActionResult::Sh,
+        }
+    } else {
+        let parse_result = command_parser::parse(&input);
+
+        match parse_result.command {
+            C_EXIT => self::exit(),
+            C_HELP => self::help(),
+            C_LIST => self::list(list),
+            C_ADD => self::add(state),
+            C_EDIT => self::edit(parse_result, list, state),
+            C_REMOVE => self::remove(parse_result, list, state),
+            C_DONE => self::done(parse_result, list),
+            C_UNDONE => self::undone(parse_result, list),
+            C_CLEAR => self::clear(list, state),
+            C_SAVE => self::save(list, state),
+            C_LOAD => self::load(state),
+            _ => ActionResult::UnknownCommand,
+        }
+    }
+}

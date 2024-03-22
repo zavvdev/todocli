@@ -1,21 +1,3 @@
-pub enum ProcessError {
-    ListCapacityExceeded,
-    ListItemNotFound,
-    TaskIndexMissing,
-    InvalidArguments,
-    UnknownCommand,
-    CannotWriteToFile,
-    CannotLoadFile,
-}
-
-pub enum ProcessResult {
-    Sh,
-    Ok,
-    Terminate,
-    Feedback(String),
-    Error(ProcessError),
-}
-
 pub const TASKS_LIST_MAX_CAPACITY: usize = 200;
 
 pub const C_EXIT: &str = "exit";

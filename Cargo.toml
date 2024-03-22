@@ -3,5 +3,13 @@ name = "todocli"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "todocli"
+path = "src/main.rs"
+
+[lib]
+name = "todocli"
+path = "src/lib.rs"
+
 [dependencies]
 regex = "1.10.3"

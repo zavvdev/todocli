@@ -1,19 +1,8 @@
 use regex::Regex;
 
-pub fn is_arguments_integer(arguments: &Vec<&str>) -> bool {
+pub fn are_strings_integers(strings: &Vec<&str>) -> bool {
     let re = Regex::new(r"[1-9]+").unwrap();
-
-    if arguments.len() > 0 {
-        for argument in arguments.iter() {
-            if !re.is_match(argument) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    false
+    strings.iter().all(|s| re.is_match(s))
 }
 
 pub fn trim_str(target: &str) -> String {
@@ -26,13 +15,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_is_arguments_integer_true() {
-        assert!(is_arguments_integer(&vec!["1", "2", "42"]));
+    fn test_are_strings_integers_true() {
+        assert!(are_strings_integers(&vec!["1", "2", "42"]));
     }
 
     #[test]
-    fn test_is_arguments_integer_false() {
-        assert!(!is_arguments_integer(&vec!["1", "two", "42"]));
+    fn test_is_strings_integers_false() {
+        assert!(!are_strings_integers(&vec!["1", "two", "42"]));
     }
 
     #[test]

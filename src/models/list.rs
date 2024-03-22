@@ -1,15 +1,16 @@
-use regex::Regex;
 use crate::{config::TASKS_LIST_MAX_CAPACITY, utils};
+use regex::Regex;
 
 const DONE_MARK: &str = "[+]";
 const UNDONE_MARK: &str = "[ ]";
 
-enum Error {
+pub enum Error {
     CapacityExceeded,
     ItemNotFound,
+    InvalidPattern,
 }
 
-struct Task {
+pub struct Task {
     pub text: String,
     pub is_done: bool,
 }
@@ -25,8 +26,11 @@ impl List {
         }
     }
 
-    pub fn get(&mut self, index: usize) -> Option<&Task> {
-        self.tasks.get(index)
+    pub fn get(&mut self, index: usize) -> Result<&Task, Error> {
+        match self.tasks.get(index) {
+            Some(task) => Ok(&task),
+            None => Err(Error::ItemNotFound),
+        }
     }
 
     pub fn add(&mut self, text: String) -> Result<(), Error> {
@@ -91,37 +95,37 @@ impl List {
     pub fn to_text(&self) -> String {
         let mut result = String::new();
 
-        for (index, task) in self.tasks.iter().enumerate() {
-            let status = match task.is_done {
+        self.tasks.iter().enumerate().for_each(|(i, t)| {
+            let status = match t.is_done {
                 true => DONE_MARK,
                 false => UNDONE_MARK,
             };
 
-            result.push_str(&format!("{}) {} {};\n", index + 1, status, task.text));
-        }
+            result.push_str(&format!("{}) {} {};\n", i + 1, status, t.text));
+        });
 
         result
     }
 
-    pub fn from_text(&mut self, text: &str) -> Result<(), ()> {
+    pub fn from_text(&mut self, text: &str) -> Result<(), Error> {
         let mut result: Vec<Task> = Vec::new();
         let re = Regex::new(r"(\[\s*\+?\s*\])(([^;\[\]])+)(;)").unwrap();
 
         if re.is_match(&text) {
-            for c in re.captures_iter(text) {
+            re.captures_iter(text).for_each(|c| {
                 let check = utils::trim_str(c.get(1).unwrap().into());
                 let text = utils::trim_str(c.get(2).unwrap().into());
 
                 result.push(Task {
-                    text,
+                    text: text.to_string(),
                     is_done: check == DONE_MARK,
                 });
-            }
+            });
 
             self.tasks = result;
             Ok(())
         } else {
-            Err(())
+            Err(Error::InvalidPattern)
         }
     }
 }
@@ -142,7 +146,7 @@ mod tests {
         let mut list = List::new();
         let _ = list.add("test".to_string());
         let result = list.get(0);
-        assert!(result.is_some());
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -171,7 +175,7 @@ mod tests {
 
         let result = list.alter(0, "new_text".to_string());
         assert!(result.is_ok());
-        assert!(list.get(0).unwrap().text == "new_text");
+        assert!(list.get(0).unwrap().text == "new_text".to_string());
     }
 
     #[test]
@@ -221,7 +225,7 @@ mod tests {
         let _ = list.mark_done(0);
         let result = list.to_text();
 
-        assert!(result == "1) [+] test1;\n2) [ ] test2;\n".to_string());
+        assert!(result == "1) [+] test1;\n2) [ ] test2;\n");
     }
 
     #[test]
@@ -241,9 +245,9 @@ mod tests {
 
         let _ = list.from_text("1) [ ] test1;\n2) [+] test2;\n");
 
-        for (index, task) in list.tasks.iter().enumerate() {
-            assert!(task.text == expected.get(index).unwrap().text);
-            assert!(task.is_done == expected.get(index).unwrap().is_done);
-        }
+        list.tasks.iter().enumerate().for_each(|(i, t)| {
+            assert!(t.text == expected.get(i).unwrap().text);
+            assert!(t.is_done == expected.get(i).unwrap().is_done);
+        });
     }
 }
