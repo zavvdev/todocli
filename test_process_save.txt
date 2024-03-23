@@ -1,0 +1,2 @@
+1) [ ] learn rust;
+2) [+] learn javascript;

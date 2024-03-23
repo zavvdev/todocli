@@ -4,6 +4,7 @@ use regex::Regex;
 const DONE_MARK: &str = "[+]";
 const UNDONE_MARK: &str = "[ ]";
 
+#[derive(Debug)]
 pub enum Error {
     CapacityExceeded,
     ItemNotFound,

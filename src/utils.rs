@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::io::{self, Write};
 
 pub fn are_strings_integers(strings: &Vec<&str>) -> bool {
     let re = Regex::new(r"[1-9]+").unwrap();
@@ -8,6 +9,17 @@ pub fn are_strings_integers(strings: &Vec<&str>) -> bool {
 pub fn trim_str(target: &str) -> String {
     let entries: Vec<&str> = target.split_whitespace().collect();
     entries.join(" ")
+}
+
+pub fn get_user_input() -> String {
+    let mut input = String::new();
+    let _ = io::stdout().flush();
+
+    io::stdin()
+        .read_line(&mut input)
+        .expect("failed to read input");
+
+    input
 }
 
 #[cfg(test)]

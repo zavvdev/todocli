@@ -1,13 +1,10 @@
+mod actions;
 mod command_parser;
 mod config;
-mod controllers;
 mod models;
 mod utils;
 
-use crate::controllers::{
-    action::{self, ActionResult},
-    input,
-};
+use crate::actions::ActionResult;
 use crate::models::list::List;
 use crate::models::state::State;
 
@@ -20,11 +17,11 @@ pub fn run() {
     loop {
         print!("> ");
 
-        match action::process(input::accept(), &mut list, &mut state) {
+        match actions::process(utils::get_user_input(), &mut list, &mut state) {
             ActionResult::Sh => continue,
 
             ActionResult::Ok => {
-                println!("ok.");
+                println!("ok");
                 continue;
             }
 
@@ -66,7 +63,7 @@ pub fn run() {
             }
 
             ActionResult::NeedTask => {
-                println!("enter task:");
+                println!("enter task");
             }
 
             ActionResult::CannotSave => {
